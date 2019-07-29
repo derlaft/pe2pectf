@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashmatter/p3lib/sphinx"
 	golog "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -27,6 +28,7 @@ type Client struct {
 	Host      host.Host
 	Settings  *Settings
 	Discovery routing.ContentRouting
+	RelayCtx  *sphinx.RelayerCtx
 }
 
 func (c *Client) HostAddress() string {

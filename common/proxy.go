@@ -2,14 +2,11 @@ package common
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"net"
 	"strconv"
 
 	"github.com/armon/go-socks5"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 )
 
@@ -44,10 +41,6 @@ func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, erro
 
 	// @TODO: dial of addr of the same node
 
-	if network != "tcp" {
-		return nil, errors.New("Only TCP is supported")
-	}
-
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, errors.New("Error parsing network addr")
@@ -58,22 +51,13 @@ func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, erro
 		return nil, errors.New("Error parsing network addr port")
 	}
 
-	if !c.Settings.Node.IsPortAllowed(portValue) {
-		return nil, errors.Errorf("Port %v is not allowed", portValue)
-	}
-
-	dialAddr, found := c.Settings.Routing.PublicKeyForAddr(host)
+	peerID, found := c.Settings.Routing.PeerIDForAddr(host)
 	if !found {
 		return nil, errors.Errorf("Addr %v is not in static routing table", addr)
 	}
 
-	peerID, err := peer.IDB58Decode(dialAddr)
-	if err != nil {
-		return nil, err
-	}
-
 	// in case of this node
-	if peerID == c.Host.ID() && c.Settings.Node != nil && c.Settings.Node.Enabled {
+	if peerID == c.Host.ID() && c.Settings.ExitNode != nil && c.Settings.ExitNode.Enabled {
 
 		// just dial addr locally - it's on this node
 		dialer := &net.Dialer{}
@@ -88,28 +72,20 @@ func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, erro
 		return nil, errors.Errorf("This relay does not host anything")
 	}
 
-	stream, err := c.Host.NewStream(ctx, peerID, ProxyRelayProtocol)
-	if err != nil {
-		return nil, err
-	}
-
-	// write and flush header
-	err = binary.Write(stream, binary.BigEndian, connectionOpenRequest{
-		Port: uint32(portValue),
-	})
+	conn, err := c.OnionDial(ctx, network, peerID, portValue)
 	if err != nil {
 		return nil, err
 	}
 
 	return StreamWrapper{
-		Stream: stream,
+		Conn:   conn,
 		Local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: portValue},
 		Remote: &net.TCPAddr{IP: net.ParseIP(addr), Port: portValue},
 	}, nil
 }
 
 type StreamWrapper struct {
-	network.Stream
+	net.Conn
 	Local  *net.TCPAddr
 	Remote *net.TCPAddr
 }

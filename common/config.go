@@ -4,16 +4,19 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
+	"crypto/ecdsa"
+
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/pkg/errors"
 )
 
 type Settings struct {
 	ConnectSettings
-	Crypto  *CryptoSettings
-	Routing *RoutingSettings
-	Proxy   *ProxySettings
-	Node    *NodeSettings
+	Crypto   *CryptoSettings
+	Routing  *RoutingSettings
+	Proxy    *ProxySettings
+	ExitNode *ExitNodeSettings
 }
 
 type ConnectSettings struct {
@@ -26,14 +29,22 @@ type ConnectSettings struct {
 }
 
 type CryptoSettings struct {
-	RSAPrivate crypto.PrivKey
+	RSAPrivate   crypto.PrivKey
+	ECDSAPrivate ecdsa.PrivateKey
 }
 
 type RoutingSettings struct {
-	// Only these nodes are allowed to be routed
-	TrustedRelays []string
 	// Networks is a map of public keys -> allowed subnets
-	Networks map[string]string
+	Networks MembersMap
+}
+
+type MembersMap struct {
+	Values map[core.PeerID]Member
+}
+
+type Member struct {
+	Address     string
+	ECDSAPublic ecdsa.PublicKey
 }
 
 type ProxySettings struct {
@@ -41,13 +52,13 @@ type ProxySettings struct {
 	ListenAddr string
 }
 
-type NodeSettings struct {
+type ExitNodeSettings struct {
 	Enabled bool
 	// AllowedPorts defines which services are proxy-accessible
 	AllowedPorts []int
 }
 
-func (ns *NodeSettings) IsPortAllowed(id int) bool {
+func (ns *ExitNodeSettings) IsPortAllowed(id int) bool {
 
 	if ns == nil {
 		return false
@@ -79,12 +90,17 @@ func SettingsFromFile(fname string) (*Settings, error) {
 	return &settings, nil
 }
 
-func (r *RoutingSettings) PublicKeyForAddr(addr string) (string, bool) {
+func (r *RoutingSettings) PeerIDForAddr(addr string) (core.PeerID, bool) {
 
-	if r == nil || r.Networks == nil {
+	if r == nil || r.Networks.Values == nil {
 		return "", false
 	}
 
-	addr, found := r.Networks[addr]
-	return addr, found
+	for peer, info := range r.Networks.Values {
+		if info.Address == addr {
+			return peer, true
+		}
+	}
+
+	return "", false
 }
