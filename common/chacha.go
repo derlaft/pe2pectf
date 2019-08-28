@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"io"
-	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -15,7 +14,7 @@ import (
 const streamMaxMessage = 256
 
 type CryptoReadWriter struct {
-	Stream  SimpleConn
+	Stream  io.ReadWriter
 	ChaCha  cipher.AEAD
 	OldData []byte
 }
@@ -25,7 +24,7 @@ type MessageHeader struct {
 	Len   uint32 // length of encoded message
 }
 
-func NewCryptoReadWriter(conn SimpleConn, key []byte) (*CryptoReadWriter, error) {
+func NewCryptoReadWriter(conn io.ReadWriter, key []byte) (*CryptoReadWriter, error) {
 
 	chacha, err := chacha20poly1305.New(key)
 	if err != nil {
@@ -57,6 +56,8 @@ func (cr *CryptoReadWriter) Read(p []byte) (n int, err error) {
 		teeReader = io.TeeReader(cr.Stream, headBuf)
 	)
 
+	log.Debugf("waiting for header")
+
 	// decode the header
 	var header MessageHeader
 	err = binary.Read(teeReader, binary.BigEndian, &header)
@@ -66,12 +67,16 @@ func (cr *CryptoReadWriter) Read(p []byte) (n int, err error) {
 		return 0, errors.Wrap(err, "Failed to read next message header")
 	}
 
+	log.Debugf("got message header, waiting for %v bytes of sealed payload", int(header.Len)+cr.ChaCha.Overhead())
+
 	// read the encrypted message
 	var messageBuf = make([]byte, int(header.Len)+cr.ChaCha.Overhead())
 	n, err = cr.Stream.Read(messageBuf)
 	if err != nil {
 		return 0, err
 	}
+
+	log.Debugf("got message body")
 
 	// buffer for the plaintext message
 	var buf = p
@@ -87,6 +92,8 @@ func (cr *CryptoReadWriter) Read(p []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
+
+	log.Debugf("unsealed payload")
 
 	// if OldData is used, it will be read next time
 
@@ -129,21 +136,11 @@ func (cr *CryptoReadWriter) Write(p []byte) (n int, err error) {
 			return
 		}
 
+		log.Debugf("wrote %v bytes of sealed payload", len(payload))
+
 		n += toSend
 		p = p[toSend:]
 	}
 
 	return n, nil
-}
-
-func (cr *CryptoReadWriter) SetReadDeadline(t time.Time) error {
-	return cr.Stream.SetReadDeadline(t)
-}
-
-func (cr *CryptoReadWriter) SetWriteDeadline(t time.Time) error {
-	return cr.Stream.SetWriteDeadline(t)
-}
-
-func (cr *CryptoReadWriter) SetDeadline(t time.Time) error {
-	return cr.Stream.SetDeadline(t)
 }

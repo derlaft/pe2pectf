@@ -22,7 +22,7 @@ type CryptoHop struct {
 	ECDSAPublic ecdsa.PublicKey
 }
 
-const NumHops = 1 // @TODO debug only
+const NumHops = 2 // @TODO debug only
 
 func (c *Client) GenPath(dest core.PeerID) ([]CryptoHop, error) {
 
@@ -200,6 +200,7 @@ func (c *Client) OnionDial(ctx context.Context, proto string, host core.PeerID, 
 		// @TODO
 		go func() {
 
+			log.Debugf("connecting dial stuff")
 			err := connectStream(insideEnd, e2e)
 			if err != nil {
 				log.Errorf("Error with connected stream: %v", err)

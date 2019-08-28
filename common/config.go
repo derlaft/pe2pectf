@@ -12,20 +12,18 @@ import (
 )
 
 type Settings struct {
-	ConnectSettings
-	Crypto   *CryptoSettings
-	Routing  *RoutingSettings
-	Proxy    *ProxySettings
-	ExitNode *ExitNodeSettings
+	NodeCluster NodeClusterSettings // always required
+	Crypto      CryptoSettings      // always required
+	Routing     *RoutingSettings    // required for teams
+	Proxy       *ProxySettings      // required for teams
+	ExitNode    *ExitNodeSettings   // required for teams
 }
 
-type ConnectSettings struct {
+type NodeClusterSettings struct {
 	ListenHost     string
 	ListenPort     int
 	BootstrapNodes []string
 	NetworkID      string
-	DoDiscovery    bool
-	Relay          bool
 }
 
 type CryptoSettings struct {

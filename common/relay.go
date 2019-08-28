@@ -12,8 +12,8 @@ import (
 	"golang.org/x/crypto/chacha20poly1305"
 
 	"github.com/hashmatter/p3lib/sphinx"
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 )
 
@@ -80,7 +80,8 @@ func (c *Client) serveRelayPackets(ctx context.Context, s network.Stream) error 
 		return fmt.Errorf("dead-end")
 	}
 
-	dialAddr, err := peer.IDFromBytes(nextAddr[:])
+	var dialAddr core.PeerID
+	err = dialAddr.UnmarshalBinary(nextAddr[:34])
 	if err != nil {
 		return errors.Wrap(err, "parsing next hop addr")
 	}
@@ -92,15 +93,12 @@ func (c *Client) serveRelayPackets(ctx context.Context, s network.Stream) error 
 
 	var encoder = gob.NewEncoder(stream)
 
-	err = encoder.Encode(&nextPacket)
+	err = encoder.Encode(nextPacket)
 	if err != nil {
 		return errors.Wrap(err, "encoding next header to stream")
 	}
 
-	go connectStream(stream, s)
-
-	return nil
-
+	return connectStream(stream, s)
 }
 
 // serveExitNode connects stream s to a local port

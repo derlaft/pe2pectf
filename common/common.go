@@ -42,8 +42,8 @@ func (c *Client) HostAddress() string {
 func CreateHost(context context.Context, settings *Settings) (*Client, error) {
 
 	listenAddr := fmt.Sprintf("/ip4/%s/tcp/%d",
-		settings.ListenHost,
-		settings.ListenPort,
+		settings.NodeCluster.ListenHost,
+		settings.NodeCluster.ListenPort,
 	)
 
 	opts := []libp2p.Option{
@@ -53,10 +53,6 @@ func CreateHost(context context.Context, settings *Settings) (*Client, error) {
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
 		libp2p.NATPortMap(),
-	}
-
-	if !settings.Relay {
-		opts = append(opts, libp2p.DisableRelay())
 	}
 
 	basicHost, err := libp2p.New(context, opts...)
@@ -96,14 +92,13 @@ func (c *Client) ConnectDHT(ctx context.Context) error {
 	}
 
 	return nil
-
 }
 
 func (c *Client) bootstrapDHT(ctx context.Context) error {
 
 	// connect to all bootstrap nodes
 	var wg sync.WaitGroup
-	for _, peerAddr := range c.Settings.BootstrapNodes {
+	for _, peerAddr := range c.Settings.NodeCluster.BootstrapNodes {
 
 		addr, err := multiaddr.NewMultiaddr(peerAddr)
 		if err != nil {
