@@ -33,7 +33,7 @@ type connectionOpenRequest struct {
 func (c *Client) StartRelay() error {
 
 	// create relay context
-	c.RelayCtx = sphinx.NewRelayerCtx(&c.Settings.Crypto.ECDSAPrivate)
+	c.RelayCtx = sphinx.NewRelayerCtx(&c.Settings.Crypto.OnionKey)
 
 	// bind listener
 	c.Host.SetStreamHandler(ProxyRelayProtocol, func(s network.Stream) {
@@ -72,7 +72,7 @@ func (c *Client) serveRelayPackets(ctx context.Context, s network.Stream) error 
 		return errors.Wrap(err, "processing relay header")
 	}
 
-	if nextPacket.IsLast() && c.Settings.ExitNode != nil && c.Settings.ExitNode.Enabled {
+	if nextPacket.IsLast() && c.Settings.ExitNode != nil {
 		// @TODO handle exit node
 		return c.serveExitNode(ctx, nextPacket.Payload, s)
 

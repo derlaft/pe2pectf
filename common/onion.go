@@ -31,7 +31,7 @@ func (c *Client) GenPath(dest core.PeerID) ([]CryptoHop, error) {
 		ret  = make([]CryptoHop, 0, NumHops)
 	)
 
-	for addr, info := range c.Settings.Routing.Networks.Values {
+	for addr, info := range c.Settings.Network.Nodes {
 
 		// check return (here to allow 1 hops for testing purposes)
 		if hops == 0 {
@@ -50,7 +50,7 @@ func (c *Client) GenPath(dest core.PeerID) ([]CryptoHop, error) {
 
 		// decode && append next hop
 		ret = append(ret, CryptoHop{
-			ECDSAPublic: info.ECDSAPublic,
+			ECDSAPublic: info.OnionKey,
 			HostID:      addr,
 		})
 
@@ -59,7 +59,7 @@ func (c *Client) GenPath(dest core.PeerID) ([]CryptoHop, error) {
 
 	}
 
-	destHopInfo, found := c.Settings.Routing.Networks.Values[dest]
+	destHopInfo, found := c.Settings.Network.Nodes[dest]
 	if !found {
 		return nil, errors.Errorf("dest hop %v not found in network map", dest)
 	}
@@ -67,7 +67,7 @@ func (c *Client) GenPath(dest core.PeerID) ([]CryptoHop, error) {
 	// @TODO: append end addr
 	ret = append(ret, CryptoHop{
 		HostID:      dest,
-		ECDSAPublic: destHopInfo.ECDSAPublic,
+		ECDSAPublic: destHopInfo.OnionKey,
 	})
 
 	if len(ret) != NumHops {

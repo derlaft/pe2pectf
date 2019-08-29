@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
 
 	"github.com/derlaft/pe2pectf/common"
 
@@ -14,10 +15,25 @@ var log = golog.Logger("pe2pe_main") //nolint:gochecknoglobals
 
 func main() {
 
-	// parse cli options
-	settingsPath := flag.String("config", "server.json", "config file location")
+	var settings = new(common.Settings)
+
+	// service-related settings
+	flag.StringVar(&settings.ListenAddr, "listen-relay", "0.0.0.0:4242", "Listen on (relay)")
+	flag.StringVar(&settings.ProxyAddr, "listen-proxy", "0.0.0.0:9050", "Listen on (socks5 proxy")
+	flag.StringVar(&settings.ExitNodeConfig, "exit-node-config", "", "Configuration file with service mappings")
+	flag.StringVar(&settings.NetworkConfig, "network-config", "", "Configuration file with network map")
+	flag.StringVar(&settings.CryptoConfig, "crypto-config", "", "Configuration file with client private crypto keys")
+
+	// global debug mode
 	debug := flag.Bool("debug", false, "enable verbose logging")
+
+	// parse cli options
 	flag.Parse()
+
+	if settings.CryptoConfig == "" || settings.NetworkConfig == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	if *debug {
 		golog.SetAllLoggers(gologging.DEBUG)
@@ -27,7 +43,7 @@ func main() {
 
 	ctx := context.Background()
 
-	settings, err := common.SettingsFromFile(*settingsPath)
+	err := settings.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +67,7 @@ func main() {
 	}
 
 	// start proxy if requested
-	if settings.Proxy != nil && settings.Proxy.Enabled {
+	if settings.ProxyAddr != "" {
 		err = c.StartProxy()
 		if err != nil {
 			log.Fatal(err)

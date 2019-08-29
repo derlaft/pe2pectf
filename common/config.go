@@ -2,58 +2,56 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"strconv"
 
 	"crypto/ecdsa"
 
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/pkg/errors"
 )
 
 type Settings struct {
-	NodeCluster NodeClusterSettings // always required
-	Crypto      CryptoSettings      // always required
-	Routing     *RoutingSettings    // required for teams
-	Proxy       *ProxySettings      // required for teams
-	ExitNode    *ExitNodeSettings   // required for teams
+	// server will be listening on this addr (relay && connectivity)
+	ListenAddr string
+	// if not empty, socks5 proxy will be listening on this addr (entry point into the game network)
+	ProxyAddr string
+
+	// exit node config (hosted services)
+	ExitNodeConfig string
+	ExitNode       *ExitNodeSettings
+
+	// network config (info about all nodes in the network)
+	NetworkConfig string
+	Network       *NetworkSettings
+
+	// private keys
+	CryptoConfig string
+	Crypto       *CryptoSettings
 }
 
-type NodeClusterSettings struct {
-	ListenHost     string
-	ListenPort     int
-	BootstrapNodes []string
-	NetworkID      string
+type ExitNodeSettings map[string]string
+
+type NetworkSettings struct {
+	DHT   DHTSettings
+	Nodes map[core.PeerID]Member
+}
+
+type DHTSettings struct {
+	Bootstrap []string
+	NetworkID string
 }
 
 type CryptoSettings struct {
-	RSAPrivate   crypto.PrivKey
-	ECDSAPrivate ecdsa.PrivateKey
-}
-
-type RoutingSettings struct {
-	// Networks is a map of public keys -> allowed subnets
-	Networks MembersMap
-}
-
-type MembersMap struct {
-	Values map[core.PeerID]Member
+	Key      crypto.PrivKey
+	OnionKey ecdsa.PrivateKey
 }
 
 type Member struct {
-	Address     string
-	ECDSAPublic ecdsa.PublicKey
-}
-
-type ProxySettings struct {
-	Enabled    bool
-	ListenAddr string
-}
-
-type ExitNodeSettings struct {
-	Enabled bool
-	// AllowedPorts defines which services are proxy-accessible
-	AllowedPorts []int
+	Address      string
+	OnionKey     ecdsa.PublicKey
+	TrustedRelay bool
 }
 
 func (ns *ExitNodeSettings) IsPortAllowed(id int) bool {
@@ -62,39 +60,75 @@ func (ns *ExitNodeSettings) IsPortAllowed(id int) bool {
 		return false
 	}
 
-	for _, ap := range ns.AllowedPorts {
-		if ap == id {
-			return true
+	var key = strconv.Itoa(id)
+	_, allowed := (*ns)[key]
+	return allowed
+}
+
+func (s *Settings) Load() error {
+
+	// load network config
+	{
+		if s.NetworkConfig == "" {
+			return fmt.Errorf("network map not provided")
 		}
+
+		cfg, err := LoadNetworkSettings(s.NetworkConfig)
+		if err != nil {
+			return err
+		}
+
+		s.Network = cfg
 	}
 
-	return false
+	// load exit-node config
+	if s.ExitNodeConfig > "" {
+
+		nc := new(NetworkSettings)
+
+		bytes, err := ioutil.ReadFile(s.ExitNodeConfig)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(bytes, nc)
+		if err != nil {
+			return err
+		}
+
+		s.Network = nc
+	}
+
+	// load private crypto keys
+	{
+		cs := new(CryptoSettings)
+		if s.CryptoConfig == "" {
+			return fmt.Errorf("crypto keys not provided")
+		}
+
+		bytes, err := ioutil.ReadFile(s.CryptoConfig)
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(bytes, cs)
+		if err != nil {
+			return err
+		}
+
+		s.Crypto = cs
+	}
+
+	return nil
 }
 
-func SettingsFromFile(fname string) (*Settings, error) {
+func (ns *NetworkSettings) PeerIDForAddr(addr string) (core.PeerID, bool) {
 
-	data, err := ioutil.ReadFile(fname)
-	if err != nil {
-		return nil, err
-	}
-
-	var settings Settings
-
-	err = json.Unmarshal(data, &settings)
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to decode config")
-	}
-
-	return &settings, nil
-}
-
-func (r *RoutingSettings) PeerIDForAddr(addr string) (core.PeerID, bool) {
-
-	if r == nil || r.Networks.Values == nil {
+	if ns == nil || ns.Nodes == nil {
 		return "", false
 	}
 
-	for peer, info := range r.Networks.Values {
+	for peer, info := range ns.Nodes {
 		if info.Address == addr {
 			return peer, true
 		}

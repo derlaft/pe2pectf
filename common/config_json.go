@@ -6,16 +6,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	core "github.com/libp2p/go-libp2p-core"
+	"gopkg.in/ini.v1"
+
 	"github.com/libp2p/go-libp2p-core/crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/pkg/errors"
 )
 
 type encodeCryptoSettings struct {
-	RSAPrivate   string
-	ECDSAPrivate string
-	NetworkMap   map[string]string
+	Key      string
+	OnionKey string
 }
 
 func (cs *CryptoSettings) UnmarshalJSON(input []byte) error {
@@ -27,7 +27,7 @@ func (cs *CryptoSettings) UnmarshalJSON(input []byte) error {
 		return errors.Wrap(err, "decoding key object")
 	}
 
-	rsa, err := base64.StdEncoding.DecodeString(ec.RSAPrivate)
+	rsa, err := base64.StdEncoding.DecodeString(ec.Key)
 	if err != nil {
 		return errors.Wrap(err, "decoding rsa key (base64)")
 	}
@@ -37,9 +37,9 @@ func (cs *CryptoSettings) UnmarshalJSON(input []byte) error {
 		return errors.Wrap(err, "decoding rsa key")
 	}
 
-	cs.RSAPrivate = rsaDecoded
+	cs.Key = rsaDecoded
 
-	ecdsa, err := base64.StdEncoding.DecodeString(ec.ECDSAPrivate)
+	ecdsa, err := base64.StdEncoding.DecodeString(ec.OnionKey)
 	if err != nil {
 		return errors.Wrap(err, "decoding ecdsa private key")
 	}
@@ -49,57 +49,69 @@ func (cs *CryptoSettings) UnmarshalJSON(input []byte) error {
 		return errors.Wrap(err, "parsing ecdsa private key")
 	}
 
-	cs.ECDSAPrivate = *ecdsaP
+	cs.OnionKey = *ecdsaP
 
 	return nil
 }
 
-type encodeMembersMap map[string]encodeMember
-
-type encodeMember struct {
-	Address     string
-	ECDSAPublic string
+type encodeMembers struct {
+	DHT  DHTSettings
+	Node map[string]encodeMember
 }
 
-func (mm *MembersMap) UnmarshalJSON(input []byte) error {
+type encodeMember struct {
+	Address  string
+	Key      string
+	OnionKey string
+	Trusted  bool
+}
 
-	mm.Values = make(map[core.PeerID]Member)
+func LoadNetworkSettings(fname string) (*NetworkSettings, error) {
 
-	var dec encodeMembersMap
-	err := json.Unmarshal(input, &dec)
+	cfg, err := ini.Load(fname)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for addr, data := range dec {
+	var dec encodeMembers
+	err = cfg.MapTo(&dec)
+	if err != nil {
+		return nil, err
+	}
+
+	var output = NetworkSettings{
+		DHT: dec.DHT,
+	}
+
+	for addr, data := range dec.Node {
 
 		peerID, err := peer.IDB58Decode(addr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		keyBytes, err := base64.StdEncoding.DecodeString(data.ECDSAPublic)
+		keyBytes, err := base64.StdEncoding.DecodeString(data.OnionKey)
 		if err != nil {
-			return errors.Wrap(err, "decoding ecdsa public key")
+			return nil, errors.Wrap(err, "decoding ecdsa public key")
 		}
 
 		ecdsaP, err := x509.ParsePKIXPublicKey(keyBytes)
 		if err != nil {
-			return errors.Wrap(err, "parsing ecdsa public key")
+			return nil, errors.Wrap(err, "parsing ecdsa public key")
 		}
 
 		ecdsaPK, ok := ecdsaP.(*ecdsa.PublicKey)
 		if !ok {
-			return errors.Wrapf(err, "casting ecdsa public key (unknown type %T)", ecdsaP)
+			return nil, errors.Wrapf(err, "casting ecdsa public key (unknown type %T)", ecdsaP)
 
 		}
 
-		mm.Values[peerID] = Member{
-			Address:     data.Address,
-			ECDSAPublic: *ecdsaPK,
+		output.Nodes[peerID] = Member{
+			Address:      data.Address,
+			OnionKey:     *ecdsaPK,
+			TrustedRelay: data.Trusted,
 		}
-
 	}
 
-	return nil
+	return &output, nil
 }

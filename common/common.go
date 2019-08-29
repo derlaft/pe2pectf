@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -41,14 +42,16 @@ func (c *Client) HostAddress() string {
 // createHost creates this new CTF host
 func CreateHost(context context.Context, settings *Settings) (*Client, error) {
 
-	listenAddr := fmt.Sprintf("/ip4/%s/tcp/%d",
-		settings.NodeCluster.ListenHost,
-		settings.NodeCluster.ListenPort,
-	)
+	host, port, err := net.SplitHostPort(settings.ListenAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	listenAddr := fmt.Sprintf("/ip4/%s/tcp/%s", host, port)
 
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(listenAddr),
-		libp2p.Identity(settings.Crypto.RSAPrivate),
+		libp2p.Identity(settings.Crypto.Key),
 		libp2p.DefaultTransports,
 		libp2p.DefaultMuxers,
 		libp2p.DefaultSecurity,
@@ -98,7 +101,7 @@ func (c *Client) bootstrapDHT(ctx context.Context) error {
 
 	// connect to all bootstrap nodes
 	var wg sync.WaitGroup
-	for _, peerAddr := range c.Settings.NodeCluster.BootstrapNodes {
+	for _, peerAddr := range c.Settings.Network.DHT.Bootstrap {
 
 		addr, err := multiaddr.NewMultiaddr(peerAddr)
 		if err != nil {

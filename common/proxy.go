@@ -22,7 +22,7 @@ func (c *Client) StartProxy() error {
 	}
 
 	go func() {
-		err := server.ListenAndServe("tcp", c.Settings.Proxy.ListenAddr)
+		err := server.ListenAndServe("tcp", c.Settings.ProxyAddr)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -51,13 +51,13 @@ func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, erro
 		return nil, errors.New("Error parsing network addr port")
 	}
 
-	peerID, found := c.Settings.Routing.PeerIDForAddr(host)
+	peerID, found := c.Settings.Network.PeerIDForAddr(host)
 	if !found {
 		return nil, errors.Errorf("Addr %v is not in static routing table", addr)
 	}
 
 	// in case of this node
-	if peerID == c.Host.ID() && c.Settings.ExitNode != nil && c.Settings.ExitNode.Enabled {
+	if peerID == c.Host.ID() && c.Settings.ExitNode != nil {
 
 		// just dial addr locally - it's on this node
 		dialer := &net.Dialer{}
