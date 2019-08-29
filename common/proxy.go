@@ -39,11 +39,29 @@ func (c *Client) Resolve(ctx context.Context, name string) (context.Context, net
 
 func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
 
-	// @TODO: dial of addr of the same node
-
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return nil, errors.New("Error parsing network addr")
+	}
+
+	if addr == c.Settings.Network.Nodes[c.Settings.Crypto.ID].Address {
+		dialer := net.Dialer{}
+
+		if c.Settings.ExitNode == nil {
+			return nil, errors.New("Exit node is disabled")
+		}
+
+		dialTo := (*c.Settings.ExitNode)[port]
+		if dialTo == "" {
+			return nil, errors.Errorf("Port %v is disabled", port)
+		}
+
+		localConn, err := dialer.DialContext(ctx, "tcp", dialTo)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to open local socket")
+		}
+
+		return localConn, nil
 	}
 
 	portValue, err := strconv.Atoi(port)

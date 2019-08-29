@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 
 	"gopkg.in/ini.v1"
 
@@ -55,8 +56,7 @@ func (cs *CryptoSettings) UnmarshalJSON(input []byte) error {
 }
 
 type encodeMembers struct {
-	DHT  DHTSettings
-	Node map[string]encodeMember
+	DHT DHTSettings
 }
 
 type encodeMember struct {
@@ -65,6 +65,8 @@ type encodeMember struct {
 	OnionKey string
 	Trusted  bool
 }
+
+const nodePrefix = "Node-"
 
 func LoadNetworkSettings(fname string) (*NetworkSettings, error) {
 
@@ -79,18 +81,31 @@ func LoadNetworkSettings(fname string) (*NetworkSettings, error) {
 		return nil, err
 	}
 
+	log.Debugf("wat %+v", dec)
+
 	var output = NetworkSettings{
-		DHT: dec.DHT,
+		DHT:   dec.DHT,
+		Nodes: make(map[peer.ID]Member),
 	}
 
-	for addr, data := range dec.Node {
+	for _, section := range cfg.Sections() {
 
-		peerID, err := peer.IDB58Decode(addr)
+		if !strings.HasPrefix(section.Name(), nodePrefix) {
+			continue
+		}
+
+		var value encodeMember
+		err = section.MapTo(&value)
 		if err != nil {
 			return nil, err
 		}
 
-		keyBytes, err := base64.StdEncoding.DecodeString(data.OnionKey)
+		peerID, err := peer.IDB58Decode(value.Key)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Could not parse peerAddr %v", value.Key)
+		}
+
+		keyBytes, err := base64.StdEncoding.DecodeString(value.OnionKey)
 		if err != nil {
 			return nil, errors.Wrap(err, "decoding ecdsa public key")
 		}
@@ -107,9 +122,10 @@ func LoadNetworkSettings(fname string) (*NetworkSettings, error) {
 		}
 
 		output.Nodes[peerID] = Member{
-			Address:      data.Address,
+			ID:           strings.TrimPrefix(section.Name(), nodePrefix),
+			Address:      value.Address,
 			OnionKey:     *ecdsaPK,
-			TrustedRelay: data.Trusted,
+			TrustedRelay: value.Trusted,
 		}
 	}
 

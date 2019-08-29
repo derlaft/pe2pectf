@@ -10,6 +10,7 @@ import (
 
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type Settings struct {
@@ -44,11 +45,13 @@ type DHTSettings struct {
 }
 
 type CryptoSettings struct {
+	ID       peer.ID
 	Key      crypto.PrivKey
 	OnionKey ecdsa.PrivateKey
 }
 
 type Member struct {
+	ID           string
 	Address      string
 	OnionKey     ecdsa.PublicKey
 	TrustedRelay bool
@@ -84,19 +87,19 @@ func (s *Settings) Load() error {
 	// load exit-node config
 	if s.ExitNodeConfig > "" {
 
-		nc := new(NetworkSettings)
+		en := new(ExitNodeSettings)
 
 		bytes, err := ioutil.ReadFile(s.ExitNodeConfig)
 		if err != nil {
 			return err
 		}
 
-		err = json.Unmarshal(bytes, nc)
+		err = json.Unmarshal(bytes, en)
 		if err != nil {
 			return err
 		}
 
-		s.Network = nc
+		s.ExitNode = en
 	}
 
 	// load private crypto keys

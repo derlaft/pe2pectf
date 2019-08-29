@@ -1,0 +1,8 @@
+version: 2
+jobs:
+    build:
+        docker:
+            - image: alekseikharlamovsisu/pe2pectf:latest
+    steps:
+        - checkout
+        - run: ./integration-tests/run.sh

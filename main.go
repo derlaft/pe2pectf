@@ -49,6 +49,7 @@ func main() {
 	}
 
 	log.Debugf("Loaded settings: %+v\n", settings)
+	log.Debugf("Network settings: %+v\n", settings.Network)
 
 	// Make a host that listens on the given multiaddress
 	c, err := common.CreateHost(ctx, settings)

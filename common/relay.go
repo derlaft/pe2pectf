@@ -118,7 +118,13 @@ func (c *Client) serveExitNode(ctx context.Context, payload [256]byte, remoteCon
 		return errors.Wrap(err, "Failed to read request header")
 	}
 
-	if !c.Settings.ExitNode.IsPortAllowed(int(header.Port)) {
+	if c.Settings.ExitNode == nil {
+		return errors.New("Exit node is disabled")
+	}
+
+	dialTo := (*c.Settings.ExitNode)[fmt.Sprintf("%v", header.Port)]
+
+	if dialTo == "" {
 		return errors.Errorf("Port %v is not allowed", header.Port)
 	}
 
@@ -126,7 +132,7 @@ func (c *Client) serveExitNode(ctx context.Context, payload [256]byte, remoteCon
 
 	// open the local socket
 	// @TODO: configurable ip addr
-	localConn, err := dialer.DialContext(ctx, "tcp", fmt.Sprintf("localhost:%v", header.Port))
+	localConn, err := dialer.DialContext(ctx, "tcp", dialTo)
 	if err != nil {
 		return errors.Wrap(err, "Failed to open local socket")
 	}
