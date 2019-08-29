@@ -30,16 +30,13 @@ func TestReaderWriter(t *testing.T) {
 		_, err := rand.Read(key)
 		assert.NoError(t, err)
 
-		writer, err := NewCryptoWriter(network, key)
+		readwriter, err := NewCryptoReadWriter(network, key)
 		assert.NoError(t, err)
 
-		reader, err := NewCryptoReader(network, key)
+		_, err = io.Copy(readwriter, input)
 		assert.NoError(t, err)
 
-		_, err = io.Copy(writer, input)
-		assert.NoError(t, err)
-
-		_, err = io.Copy(output, reader)
+		_, err = io.Copy(output, readwriter)
 		assert.NoError(t, err)
 
 		assert.Equal(t, sampleString, output.String())
