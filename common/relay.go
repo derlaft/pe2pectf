@@ -11,6 +11,8 @@ import (
 
 	"golang.org/x/crypto/chacha20poly1305"
 
+	"github.com/derlaft/connectstream"
+	"github.com/google/uuid"
 	"github.com/hashmatter/p3lib/sphinx"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -18,18 +20,25 @@ import (
 )
 
 const (
-	ProxyRelayProtocol    = "/pe2pe/0.0.1"
+	// ProxyRelayProtocol is the address of the service used for in-game network
+	ProxyRelayProtocol = "/pe2pe/0.0.1"
+	// ProxyRelayDialTimeout is a maximum amount of time waited until aborting.
+	// ... probably should be less
 	ProxyRelayDialTimeout = time.Second * 15
-	PacketLen             = 1330
-	MagicWelcomeByte      = 0x42
+	// PacketLen is a relay packet message size. @TODO: calculate it (may change)
+	PacketLen = 1330
+	// MagicWelcomeByte is the first thing sent over the encrypted e2e connection
+	MagicWelcomeByte = 0x42
 )
 
 type connectionOpenRequest struct {
 	Timestamp int64
 	Port      uint32
 	Key       [chacha20poly1305.KeySize]byte
+	StreamID  uuid.UUID
 }
 
+// StartRelay starts the relay service
 func (c *Client) StartRelay() error {
 
 	// create relay context
@@ -44,10 +53,11 @@ func (c *Client) StartRelay() error {
 		log.Debugf("Got a new stream!")
 
 		if err := c.serveRelayPackets(ctx, s); err != nil {
-			log.Error(err)
+			log.Error("resetting the stream", err)
 			_ = s.Reset()
 		} else {
-			_ = s.Close()
+			log.Error("resetting the stream (no error)")
+			_ = s.Reset()
 		}
 	})
 
@@ -98,7 +108,7 @@ func (c *Client) serveRelayPackets(ctx context.Context, s network.Stream) error 
 		return errors.Wrap(err, "encoding next header to stream")
 	}
 
-	return connectStream(stream, s)
+	return connectstream.Connect(stream, s)
 }
 
 // serveExitNode connects stream s to a local port
@@ -137,6 +147,14 @@ func (c *Client) serveExitNode(ctx context.Context, payload [256]byte, remoteCon
 		return errors.Wrap(err, "Failed to open local socket")
 	}
 
+	defer func() {
+		log.Debugf("COCC closing conn")
+		err := localConn.Close()
+		if err != nil {
+			log.Errorf("Failed to close connection: %v", err)
+		}
+	}()
+
 	// create an encrypted readwriter
 	secureConn, err := NewCryptoReadWriter(remoteConn, header.Key[:])
 	if err != nil {
@@ -150,5 +168,5 @@ func (c *Client) serveExitNode(ctx context.Context, payload [256]byte, remoteCon
 	}
 
 	// connect secure stream with local pipe
-	return connectStream(secureConn, localConn)
+	return connectstream.Connect(secureConn, localConn)
 }

@@ -6,10 +6,11 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/armon/go-socks5"
+	"github.com/derlaft/pe2pectf/go-socks5"
 	"github.com/pkg/errors"
 )
 
+// StartProxy binds a local port for proxy
 func (c *Client) StartProxy() error {
 
 	conf := &socks5.Config{
@@ -32,11 +33,22 @@ func (c *Client) StartProxy() error {
 	return nil
 }
 
+// Resolve virtual IP in the game network
 func (c *Client) Resolve(ctx context.Context, name string) (context.Context, net.IP, error) {
+
+	for _, client := range c.Settings.Network.Nodes {
+		if client.ID == name || client.Address == name {
+			return ctx, net.ParseIP(client.Address), nil
+		}
+	}
+
+	log.Errorf("Could not resolve addr %v", name)
+
 	// @TODO: actually implement some resolving
-	return nil, nil, errors.New("not implemented yet")
+	return nil, nil, errors.New("not found")
 }
 
+// Dial some host in a virtual network
 func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, error) {
 
 	host, port, err := net.SplitHostPort(addr)
@@ -77,6 +89,8 @@ func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, erro
 	// in case of this node
 	if peerID == c.Host.ID() && c.Settings.ExitNode != nil {
 
+		log.Debugf("A new local connection to port %v", portValue)
+
 		// just dial addr locally - it's on this node
 		dialer := &net.Dialer{}
 		conn, err := dialer.DialContext(ctx, "tcp", fmt.Sprintf("localhost:%v", portValue))
@@ -90,28 +104,12 @@ func (c *Client) Dial(ctx context.Context, network, addr string) (net.Conn, erro
 		return nil, errors.Errorf("This relay does not host anything")
 	}
 
+	log.Debugf("A new remote connection to %v:%v", peerID, portValue)
+
 	conn, err := c.OnionDial(ctx, network, peerID, portValue)
 	if err != nil {
 		return nil, err
 	}
 
-	return StreamWrapper{
-		Conn:   conn,
-		Local:  &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: portValue},
-		Remote: &net.TCPAddr{IP: net.ParseIP(addr), Port: portValue},
-	}, nil
-}
-
-type StreamWrapper struct {
-	net.Conn
-	Local  *net.TCPAddr
-	Remote *net.TCPAddr
-}
-
-func (sw StreamWrapper) LocalAddr() net.Addr {
-	return sw.Local
-}
-
-func (sw StreamWrapper) RemoteAddr() net.Addr {
-	return sw.Remote
+	return conn, nil
 }

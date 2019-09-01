@@ -1,15 +1,15 @@
 # github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da
 github.com/aead/chacha20
 github.com/aead/chacha20/chacha
-# github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
-github.com/armon/go-socks5
 # github.com/btcsuite/btcd v0.0.0-20190824003749-130ea5bddde3
 github.com/btcsuite/btcd/btcec
 # github.com/coreos/go-semver v0.3.0
 github.com/coreos/go-semver/semver
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/gogo/protobuf v1.2.1
+# github.com/derlaft/connectstream v0.0.0-20190901200621-a21640c4d137
+github.com/derlaft/connectstream
+# github.com/gogo/protobuf v1.3.0
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/io
 # github.com/google/uuid v1.1.1
@@ -112,7 +112,7 @@ github.com/libp2p/go-libp2p-kad-dht/metrics
 github.com/libp2p/go-libp2p-kad-dht/opts
 github.com/libp2p/go-libp2p-kad-dht/pb
 github.com/libp2p/go-libp2p-kad-dht/providers
-# github.com/libp2p/go-libp2p-kbucket v0.2.0
+# github.com/libp2p/go-libp2p-kbucket v0.2.1
 github.com/libp2p/go-libp2p-kbucket
 github.com/libp2p/go-libp2p-kbucket/keyspace
 # github.com/libp2p/go-libp2p-loggables v0.1.0
@@ -249,7 +249,7 @@ golang.org/x/net/bpf
 golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 golang.org/x/net/html/atom
-# golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+# golang.org/x/sys v0.0.0-20190830142957-1e83adbbebd0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -271,7 +271,7 @@ golang.org/x/text/runes
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
-# golang.org/x/tools v0.0.0-20190829183309-bce6695301c7
+# golang.org/x/tools v0.0.0-20190830223141-573d9926052a
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/packagesdriver

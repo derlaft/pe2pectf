@@ -13,18 +13,21 @@ import (
 
 const streamMaxMessage = 256
 
+// CryptoReadWriter implements an encrypter read-writer over an existing stream
 type CryptoReadWriter struct {
-	Stream  io.ReadWriter
+	Stream  io.ReadWriteCloser
 	ChaCha  cipher.AEAD
 	OldData []byte
 }
 
+// MessageHeader is sent before each message
 type MessageHeader struct {
 	Nonce [chacha20poly1305.NonceSize]byte
 	Len   uint32 // length of encoded message
 }
 
-func NewCryptoReadWriter(conn io.ReadWriter, key []byte) (*CryptoReadWriter, error) {
+// NewCryptoReadWriter constructor that requires a key and a stream
+func NewCryptoReadWriter(conn io.ReadWriteCloser, key []byte) (*CryptoReadWriter, error) {
 
 	chacha, err := chacha20poly1305.New(key)
 	if err != nil {
@@ -37,6 +40,9 @@ func NewCryptoReadWriter(conn io.ReadWriter, key []byte) (*CryptoReadWriter, err
 	}, nil
 }
 
+// Read next portion of data.
+// If there is already some buffered data, return it
+// If there is none, wait for the next header, decode it, read payload && return it
 func (cr *CryptoReadWriter) Read(p []byte) (n int, err error) {
 
 	// flush old buffer if it's present
@@ -100,6 +106,7 @@ func (cr *CryptoReadWriter) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+// Write back to the stream
 func (cr *CryptoReadWriter) Write(p []byte) (n int, err error) {
 
 	for len(p) > 0 {
@@ -143,4 +150,8 @@ func (cr *CryptoReadWriter) Write(p []byte) (n int, err error) {
 	}
 
 	return n, nil
+}
+
+func (cr *CryptoReadWriter) Close() error {
+	return cr.Stream.Close()
 }
