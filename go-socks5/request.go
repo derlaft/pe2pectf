@@ -199,8 +199,18 @@ func (s *Server) handleConnect(ctx context.Context, conn conn, req *Request) err
 		return fmt.Errorf("Failed to send reply: %v", err)
 	}
 
+	rwcloser := struct {
+		io.Reader
+		io.Writer
+		io.Closer
+	}{
+		Reader: req.bufConn,
+		Writer: conn,
+		Closer: conn,
+	}
+
 	// Start proxying
-	return connectstream.Connect(target, conn)
+	return connectstream.Connect(target, rwcloser)
 }
 
 // handleBind is used to handle a connect command

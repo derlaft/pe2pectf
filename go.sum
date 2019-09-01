@@ -63,6 +63,14 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/derlaft/connectstream v0.0.0-20190901200621-a21640c4d137 h1:3Is4a5afIuZXlqxlKEGPvU3aJJbG3VPH97zZZZi0RP8=
 github.com/derlaft/connectstream v0.0.0-20190901200621-a21640c4d137/go.mod h1:9W/SoM26NGSyNwoxLgJ2TaMetcLn4ApH8y6u4Tw1aqo=
+github.com/derlaft/connectstream v0.0.0-20190901214208-47d709d7b04e h1:6Yx9IDeEAIveZgpF6WZy4tpXQ35i83BKl+HCD50MVag=
+github.com/derlaft/connectstream v0.0.0-20190901214208-47d709d7b04e/go.mod h1:9W/SoM26NGSyNwoxLgJ2TaMetcLn4ApH8y6u4Tw1aqo=
+github.com/derlaft/connectstream v0.0.0-20190901214647-df26384dd57c h1:ZHreiEjYx0H6uPo58WzspmQ38LtYoOmj57esM+lF3W4=
+github.com/derlaft/connectstream v0.0.0-20190901214647-df26384dd57c/go.mod h1:9W/SoM26NGSyNwoxLgJ2TaMetcLn4ApH8y6u4Tw1aqo=
+github.com/derlaft/connectstream v0.0.0-20190901215151-ac7fef6b3e2b h1:gZuKHMM5Eh9HQ/sPMDsOs52hKUxivF4SVUN2PZxxAic=
+github.com/derlaft/connectstream v0.0.0-20190901215151-ac7fef6b3e2b/go.mod h1:9W/SoM26NGSyNwoxLgJ2TaMetcLn4ApH8y6u4Tw1aqo=
+github.com/derlaft/connectstream v0.0.0-20190901220842-056e882e7be2 h1:FIuJYTTfoqn6m1t4M8SFVt+qlMIuJPXLm4uO3uIxlWA=
+github.com/derlaft/connectstream v0.0.0-20190901220842-056e882e7be2/go.mod h1:9W/SoM26NGSyNwoxLgJ2TaMetcLn4ApH8y6u4Tw1aqo=
 github.com/dgraph-io/badger v1.5.5-0.20190226225317-8115aed38f8f/go.mod h1:VZxzAIRPHRVNRKRo6AXrX9BJegn6il06VMTZVJYCIjQ=
 github.com/dgraph-io/badger v1.6.0-rc1/go.mod h1:zwt7syl517jmP8s94KqSxTlM6IMsdhYy6psNgSztDR4=
 github.com/dgraph-io/badger v1.6.0/go.mod h1:zwt7syl517jmP8s94KqSxTlM6IMsdhYy6psNgSztDR4=

@@ -7,7 +7,7 @@ github.com/btcsuite/btcd/btcec
 github.com/coreos/go-semver/semver
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/derlaft/connectstream v0.0.0-20190901200621-a21640c4d137
+# github.com/derlaft/connectstream v0.0.0-20190901220842-056e882e7be2
 github.com/derlaft/connectstream
 # github.com/gogo/protobuf v1.3.0
 github.com/gogo/protobuf/proto

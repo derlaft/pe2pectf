@@ -11,7 +11,7 @@ require (
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.15+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
-	github.com/derlaft/connectstream v0.0.0-20190901200621-a21640c4d137
+	github.com/derlaft/connectstream v0.0.0-20190901220842-056e882e7be2
 	github.com/dgraph-io/badger v1.6.0 // indirect
 	github.com/go-kit/kit v0.9.0 // indirect
 	github.com/gogo/protobuf v1.3.0 // indirect

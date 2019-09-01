@@ -12,15 +12,15 @@ import (
 )
 
 type MockConn struct {
-	buf bytes.Buffer
-}
-
-func (m *MockConn) Write(b []byte) (int, error) {
-	return m.buf.Write(b)
+	bytes.Buffer
 }
 
 func (m *MockConn) RemoteAddr() net.Addr {
 	return &net.TCPAddr{IP: []byte{127, 0, 0, 1}, Port: 65432}
+}
+
+func (m *MockConn) Close() error {
+	return nil
 }
 
 func TestRequest_Connect(t *testing.T) {
@@ -78,7 +78,7 @@ func TestRequest_Connect(t *testing.T) {
 	}
 
 	// Verify response
-	out := resp.buf.Bytes()
+	out := resp.Bytes()
 	expected := []byte{
 		5,
 		0,
@@ -153,7 +153,7 @@ func TestRequest_Connect_RuleFail(t *testing.T) {
 	}
 
 	// Verify response
-	out := resp.buf.Bytes()
+	out := resp.Bytes()
 	expected := []byte{
 		5,
 		2,

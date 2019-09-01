@@ -95,7 +95,10 @@ func TestSOCKS5_Connect(t *testing.T) {
 	}
 	out := make([]byte, len(expected))
 
-	conn.SetDeadline(time.Now().Add(time.Second))
+	err = conn.SetDeadline(time.Now().Add(time.Second))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if _, err := io.ReadAtLeast(conn, out, len(out)); err != nil {
 		t.Fatalf("err: %v", err)
 	}

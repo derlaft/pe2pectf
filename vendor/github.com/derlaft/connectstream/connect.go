@@ -19,6 +19,22 @@ func (ce *ConnectError) isError() bool {
 	return ce.CloseA != nil || ce.CloseB != nil || ce.CopyA != nil || ce.CopyB != nil
 }
 
+func (ce *ConnectError) fixReadClosedErr() {
+
+	// Unfortunately, this error is unexported
+	// so there is no other way to check for this error %)
+	// https://github.com/golang/go/issues/4373
+
+	var searchSubstr = "use of closed network connection"
+
+	if ce.CopyA != nil && strings.Contains(ce.CopyA.Error(), searchSubstr) || ce.CopyA == io.ErrClosedPipe {
+		ce.CopyA = nil
+	}
+	if ce.CopyB != nil && strings.Contains(ce.CopyB.Error(), searchSubstr) || ce.CloseB == io.ErrClosedPipe {
+		ce.CopyB = nil
+	}
+}
+
 func (ce *ConnectError) Error() string {
 
 	var errorParts []string
@@ -45,7 +61,6 @@ func (ce *ConnectError) Error() string {
 }
 
 func closeStreams(a, b io.Closer) (error, error) {
-
 	return a.Close(), b.Close()
 }
 
@@ -83,7 +98,7 @@ func Connect(a, b io.ReadWriteCloser) error {
 
 	wg.Wait()
 
-	if errors.isError() {
+	if errors.fixReadClosedErr(); errors.isError() {
 		return &errors
 	}
 
